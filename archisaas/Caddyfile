@@ -1,0 +1,20 @@
+:80 {
+    handle /api/* {
+        reverse_proxy backend:8000
+    }
+    handle /health {
+        reverse_proxy backend:8000
+    }
+    handle {
+        reverse_proxy frontend:80
+    }
+}
+
+# NOTE: this config serves plain HTTP on your VPS's IP address, since there's
+# no domain yet. Fine for pilot/testing, but passwords and JWTs travel
+# unencrypted over the network in this mode - don't use real client data
+# until you add a domain (see "Adding a domain later" in README.md).
+#
+# Once you have a domain: replace ":80 {" above with "your-domain.com {" -
+# Caddy will automatically switch to HTTPS with a real certificate. No other
+# changes needed anywhere else in the stack.
