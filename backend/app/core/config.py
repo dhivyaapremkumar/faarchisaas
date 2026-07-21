@@ -12,6 +12,12 @@ class Settings(BaseSettings):
 
     STORAGE_BACKEND: str = "local"  # "local" or "r2"
 
+    # Your app's public-facing URL (e.g. http://87.127.158.27:8080, or later
+    # https://your-domain.com). Needed because locally-stored file links are
+    # relative paths (/api/files/...) that only work inside the app - emails
+    # need the full absolute URL to be clickable from any inbox.
+    PUBLIC_BASE_URL: str = ""
+
     R2_ACCOUNT_ID: str = ""
     R2_ACCESS_KEY_ID: str = ""
     R2_SECRET_ACCESS_KEY: str = ""
