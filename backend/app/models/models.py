@@ -60,6 +60,7 @@ class ProjectMembership(Base):
     org_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("organizations.id"))
     role: Mapped[str] = mapped_column(String, nullable=False)  # architect, vendor, client, onboarding
     trade: Mapped[str] = mapped_column(String, nullable=True)
+    category: Mapped[str] = mapped_column(String, nullable=True)  # Architect/Client/Structural/Electrical/Plumbing/A-C/Others
     status: Mapped[str] = mapped_column(String, default="invited")
     invited_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -88,6 +89,23 @@ class DrawingRevision(Base):
     status: Mapped[str] = mapped_column(String, default="draft")
     changelog: Mapped[str] = mapped_column(Text, nullable=True)
     uploaded_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class FileAccessGrant(Base):
+    """
+    Controls which categories or specific people can see a given drawing
+    revision. Architects always see everything regardless of grants (checked
+    in code via role, not via this table) - grants only govern non-architect
+    visibility. A row can target a category (broad) or a specific user
+    (narrow) - at least one should be set, enforced in application code.
+    """
+    __tablename__ = "file_access_grants"
+    id: Mapped[uuid.UUID] = uuid_pk()
+    drawing_revision_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("drawing_revisions.id"))
+    org_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("organizations.id"))
+    category: Mapped[str] = mapped_column(String, nullable=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
