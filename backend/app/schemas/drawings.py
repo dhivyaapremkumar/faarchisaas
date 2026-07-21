@@ -31,6 +31,30 @@ class DrawingRevisionOut(BaseModel):
     changelog: str | None
     signed_url: str
     created_at: datetime
+    shared_categories: list[str] = []
 
     class Config:
         from_attributes = True
+
+
+class ShareRevisionRequest(BaseModel):
+    categories: list[str] = []
+    user_ids: list[str] = []
+
+
+class EmailRevisionRequest(BaseModel):
+    recipient_email: str
+    message: str | None = None
+
+
+class ProjectFileOut(BaseModel):
+    drawing_id: str
+    drawing_number: str
+    drawing_title: str
+    discipline: str | None
+    revision_id: str
+    revision_label: str
+    status: str
+    signed_url: str
+    shared_categories: list[str] = []
+    created_at: datetime
