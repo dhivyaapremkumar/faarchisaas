@@ -12,6 +12,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
   architect: [
     { label: "Overview", path: "/", code: "OVR" },
     { label: "Drawings", path: "/drawings", code: "DWG" },
+    { label: "CAD Files", path: "/files", code: "FIL" },
     { label: "Site Meetings", path: "/meetings", code: "MOM" },
     { label: "Team", path: "/team", code: "TM" },
   ],
