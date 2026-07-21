@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../../lib/api";
+import { useActiveProject } from "../../lib/activeProject";
 import { Card, StatusBadge, SectionHeading } from "../../components/ui";
 
 interface Project {
@@ -13,13 +15,22 @@ export default function ArchitectDashboard() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { activeProjectId, setActiveProject } = useActiveProject();
 
   useEffect(() => {
     api
       .get<Project[]>("/projects")
-      .then((res) => setProjects(res.data))
+      .then((res) => {
+        setProjects(res.data);
+        // Default the active project to the first one, so sidebar/nav links have
+        // somewhere to point. Only sets it if nothing's already selected.
+        if (!activeProjectId && res.data.length > 0) {
+          setActiveProject(res.data[0].id, res.data[0].name);
+        }
+      })
       .catch(() => setError("Couldn't load projects. Check that the backend is running."))
       .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -41,15 +52,26 @@ export default function ArchitectDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {projects.map((project) => (
           <Card key={project.id}>
-            <div className="flex items-start justify-between mb-3">
-              <h3 className="font-display font-semibold text-ink text-base">{project.name}</h3>
-              <StatusBadge status={project.status} />
-            </div>
-            {project.address && <p className="text-ink/60 text-sm mb-4">{project.address}</p>}
+            <button
+              onClick={() => setActiveProject(project.id, project.name)}
+              className="w-full text-left"
+            >
+              <div className="flex items-start justify-between mb-3">
+                <h3 className="font-display font-semibold text-ink text-base">{project.name}</h3>
+                <StatusBadge status={project.status} />
+              </div>
+              {project.address && <p className="text-ink/60 text-sm mb-4">{project.address}</p>}
+            </button>
             <div className="flex gap-4 pt-3 border-t border-line/10 text-xs font-mono text-line uppercase tracking-wide">
-              <span>Drawings →</span>
-              <span>Meetings →</span>
-              <span>Team →</span>
+              <Link to="/drawings" onClick={() => setActiveProject(project.id, project.name)} className="hover:text-amber-dark">
+                Drawings →
+              </Link>
+              <Link to="/meetings" onClick={() => setActiveProject(project.id, project.name)} className="hover:text-amber-dark">
+                Meetings →
+              </Link>
+              <Link to="/team" onClick={() => setActiveProject(project.id, project.name)} className="hover:text-amber-dark">
+                Team →
+              </Link>
             </div>
           </Card>
         ))}
