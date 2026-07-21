@@ -1,6 +1,7 @@
 import { useEffect, useState, FormEvent } from "react";
 import { api } from "../../lib/api";
 import { useActiveProject } from "../../lib/activeProject";
+import { TEAM_CATEGORIES } from "../../lib/categories";
 import { Card, StatusBadge, SectionHeading } from "../../components/ui";
 
 interface Drawing {
@@ -32,6 +33,7 @@ function DrawingCard({ drawing, onChanged }: { drawing: Drawing; onChanged: () =
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [revisionLabel, setRevisionLabel] = useState("");
   const [status, setStatus] = useState("issued_for_review");
+  const [shareCategories, setShareCategories] = useState<string[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
@@ -66,12 +68,14 @@ function DrawingCard({ drawing, onChanged }: { drawing: Drawing; onChanged: () =
       formData.append("revision_label", revisionLabel);
       formData.append("status", status);
       formData.append("changelog", "");
+      formData.append("shared_categories", shareCategories.join(","));
       formData.append("file", file);
       await api.post(`/drawings/${drawing.id}/revisions`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setRevisionLabel("");
       setFile(null);
+      setShareCategories([]);
       setShowUploadForm(false);
       loadRevisions();
       onChanged(); // refresh the parent list so the "latest revision" summary updates
@@ -173,6 +177,31 @@ function DrawingCard({ drawing, onChanged }: { drawing: Drawing; onChanged: () =
                   onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                   className="w-full text-xs"
                 />
+              </div>
+              <div>
+                <label className="block text-[11px] font-mono text-line uppercase mb-1">
+                  Share with (leave blank = only architects can see it)
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {TEAM_CATEGORIES.map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() =>
+                        setShareCategories((prev) =>
+                          prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+                        )
+                      }
+                      className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                        shareCategories.includes(cat)
+                          ? "bg-blueprint text-white border-blueprint"
+                          : "bg-white text-ink/70 border-line/30 hover:border-blueprint"
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="flex gap-2 pt-1">
                 <button
