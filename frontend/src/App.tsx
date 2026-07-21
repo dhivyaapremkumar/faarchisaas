@@ -6,6 +6,7 @@ import Login from "./pages/Login";
 import ArchitectDashboard from "./pages/architect/Dashboard";
 import MeetingReview from "./pages/architect/MeetingReview";
 import ProjectDrawings from "./pages/architect/ProjectDrawings";
+import ProjectFiles from "./pages/architect/ProjectFiles";
 import ProjectMeetings from "./pages/architect/ProjectMeetings";
 import ProjectTeam from "./pages/architect/ProjectTeam";
 import VendorDashboard from "./pages/vendor/Dashboard";
@@ -45,6 +46,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <ProjectDrawings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/files"
+              element={
+                <ProtectedRoute>
+                  <ProjectFiles />
                 </ProtectedRoute>
               }
             />
