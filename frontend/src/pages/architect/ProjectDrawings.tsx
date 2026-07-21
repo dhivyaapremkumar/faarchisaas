@@ -1,7 +1,7 @@
 import { useEffect, useState, FormEvent } from "react";
 import { api } from "../../lib/api";
 import { useActiveProject } from "../../lib/activeProject";
-import { TEAM_CATEGORIES } from "../../lib/categories";
+import { TEAM_CATEGORIES, DRAWING_STATUSES } from "../../lib/categories";
 import { Card, StatusBadge, SectionHeading } from "../../components/ui";
 
 interface Drawing {
@@ -32,7 +32,7 @@ function DrawingCard({ drawing, onChanged }: { drawing: Drawing; onChanged: () =
   const [loadingRevisions, setLoadingRevisions] = useState(false);
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [revisionLabel, setRevisionLabel] = useState("");
-  const [status, setStatus] = useState("issued_for_review");
+  const [status, setStatus] = useState("scheme");
   const [shareCategories, setShareCategories] = useState<string[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -84,6 +84,13 @@ function DrawingCard({ drawing, onChanged }: { drawing: Drawing; onChanged: () =
     }
   }
 
+  async function handleDelete(revisionId: string) {
+    if (!confirm("Delete this file permanently? This can't be undone.")) return;
+    await api.delete(`/drawings/${drawing.id}/revisions/${revisionId}`);
+    loadRevisions();
+    onChanged();
+  }
+
   return (
     <Card>
       <button onClick={handleExpand} className="w-full text-left">
@@ -126,7 +133,16 @@ function DrawingCard({ drawing, onChanged }: { drawing: Drawing; onChanged: () =
                     >
                       {r.revision_label} {i === 0 ? "(latest)" : ""} — view file →
                     </a>
-                    <StatusBadge status={r.status} />
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={r.status} />
+                      <button
+                        onClick={() => handleDelete(r.id)}
+                        className="text-[11px] font-mono text-site-rust hover:text-site-rust/70 uppercase"
+                        title="Delete this file"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -163,9 +179,9 @@ function DrawingCard({ drawing, onChanged }: { drawing: Drawing; onChanged: () =
                   onChange={(e) => setStatus(e.target.value)}
                   className="w-full px-2.5 py-1.5 rounded-md border border-line/30 text-sm focus:outline-none focus:ring-2 focus:ring-amber"
                 >
-                  <option value="draft">Draft</option>
-                  <option value="issued_for_review">Issued for review</option>
-                  <option value="issued_for_construction">Issued for construction (final/approved)</option>
+                  {DRAWING_STATUSES.map((s) => (
+                    <option key={s.value} value={s.value}>{s.label}</option>
+                  ))}
                 </select>
               </div>
               <div>
