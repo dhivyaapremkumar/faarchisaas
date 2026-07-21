@@ -4,6 +4,7 @@ from sqlalchemy import select
 
 from app.core.deps import get_scoped_db, get_current_user, CurrentUser, require_roles
 from app.core.categories import TEAM_CATEGORIES, DRAWING_STATUSES
+from app.core.config import settings
 from app.models.models import Drawing, DrawingRevision, ProjectMembership, FileAccessGrant, User
 from app.schemas.drawings import (
     DrawingCreate, DrawingOut, DrawingRevisionOut, ShareRevisionRequest, EmailRevisionRequest,
@@ -259,6 +260,11 @@ async def email_revision(
     drawing = drawing_result.scalar_one_or_none()
 
     link = get_signed_url(revision.file_url, expires_in=7 * 24 * 3600)
+    if not link.startswith("http"):
+        # Local storage returns a relative path (/api/files/...) - fine inside
+        # the app, but meaningless in an email with no domain context. Prefix
+        # with PUBLIC_BASE_URL to make it a real, clickable absolute link.
+        link = f"{settings.PUBLIC_BASE_URL}{link}"
     sender_result = await db.execute(select(User).where(User.id == current_user.user_id))
     sender = sender_result.scalar_one_or_none()
 
