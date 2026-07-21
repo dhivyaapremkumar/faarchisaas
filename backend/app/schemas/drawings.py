@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-
+from uuid import UUID
 
 class DrawingCreate(BaseModel):
     project_id: str
@@ -10,7 +10,7 @@ class DrawingCreate(BaseModel):
 
 
 class DrawingOut(BaseModel):
-    id: str
+    id: UUID
     drawing_number: str
     title: str
     discipline: str | None

@@ -1,4 +1,5 @@
 from pydantic import BaseModel, EmailStr
+from uuid import UUID
 
 
 class LoginRequest(BaseModel):
@@ -14,7 +15,7 @@ class TokenResponse(BaseModel):
 
 
 class ProjectOut(BaseModel):
-    id: str
+    id: UUID
     name: str
     status: str
     address: str | None = None
