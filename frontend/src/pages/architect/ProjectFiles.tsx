@@ -19,7 +19,7 @@ interface ProjectFile {
 
 const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api").replace(/\/api$/, "");
 
-function FileRow({ file, onChanged }: { file: ProjectFile; onChanged: () => void }) {
+function FileActions({ file, onChanged }: { file: ProjectFile; onChanged: () => void }) {
   const [showShare, setShowShare] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>(file.shared_categories);
   const [savingShare, setSavingShare] = useState(false);
@@ -67,46 +67,50 @@ function FileRow({ file, onChanged }: { file: ProjectFile; onChanged: () => void
     }
   }
 
-  return (
-    <Card>
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="font-mono text-xs text-amber-dark mb-1">
-            {file.drawing_number} · {file.revision_label}
-          </p>
-          <h3 className="font-display font-semibold text-ink text-sm">{file.drawing_title}</h3>
-          {file.discipline && <p className="text-ink/50 text-xs mt-0.5">{file.discipline}</p>}
-        </div>
-        <StatusBadge status={file.status} />
-      </div>
+  async function handleDelete() {
+    if (!confirm(`Delete "${file.revision_label}" permanently? This can't be undone.`)) return;
+    await api.delete(`/drawings/${file.drawing_id}/revisions/${file.revision_id}`);
+    onChanged();
+  }
 
-      <div className="mt-3 flex items-center gap-2 flex-wrap">
-        <a
-          href={file.signed_url.startsWith("http") ? file.signed_url : `${API_ORIGIN}${file.signed_url}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs font-mono text-blueprint hover:text-amber-dark underline"
-        >
-          View file →
-        </a>
-        <span className="text-line/30">|</span>
-        <button onClick={() => setShowShare((v) => !v)} className="text-xs font-mono text-blueprint hover:text-amber-dark uppercase">
-          Share
-        </button>
-        <span className="text-line/30">|</span>
-        <button onClick={() => setShowEmail((v) => !v)} className="text-xs font-mono text-blueprint hover:text-amber-dark uppercase">
-          Email
-        </button>
+  return (
+    <div className="border-b border-line/10 last:border-b-0 py-3">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-xs text-ink font-medium">{file.revision_label}</span>
+          <StatusBadge status={file.status} />
+        </div>
+        <div className="flex items-center gap-2 text-xs font-mono">
+          <a
+            href={file.signed_url.startsWith("http") ? file.signed_url : `${API_ORIGIN}${file.signed_url}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blueprint hover:text-amber-dark underline"
+          >
+            View →
+          </a>
+          <span className="text-line/30">|</span>
+          <button onClick={() => setShowShare((v) => !v)} className="text-blueprint hover:text-amber-dark uppercase">
+            Share
+          </button>
+          <span className="text-line/30">|</span>
+          <button onClick={() => setShowEmail((v) => !v)} className="text-blueprint hover:text-amber-dark uppercase">
+            Email
+          </button>
+          <span className="text-line/30">|</span>
+          <button onClick={handleDelete} className="text-site-rust hover:text-site-rust/70 uppercase">
+            Delete
+          </button>
+        </div>
       </div>
 
       {file.shared_categories.length > 0 && (
-        <p className="text-[11px] text-ink/40 mt-2">Shared with: {file.shared_categories.join(", ")}</p>
+        <p className="text-[11px] text-ink/40 mt-1">Shared with: {file.shared_categories.join(", ")}</p>
       )}
 
       {showShare && (
-        <div className="mt-3 pt-3 border-t border-line/10">
-          <p className="text-xs font-mono text-line uppercase mb-2">Visible to these categories:</p>
-          <div className="flex flex-wrap gap-2 mb-3">
+        <div className="mt-2 pt-2">
+          <div className="flex flex-wrap gap-1.5 mb-2">
             {TEAM_CATEGORIES.map((cat) => (
               <button
                 key={cat}
@@ -133,7 +137,7 @@ function FileRow({ file, onChanged }: { file: ProjectFile; onChanged: () => void
       )}
 
       {showEmail && (
-        <form onSubmit={sendEmail} className="mt-3 pt-3 border-t border-line/10 space-y-2">
+        <form onSubmit={sendEmail} className="mt-2 pt-2 space-y-2">
           <input
             required
             type="email"
@@ -159,7 +163,7 @@ function FileRow({ file, onChanged }: { file: ProjectFile; onChanged: () => void
           {emailResult && <p className="text-xs text-ink/70 mt-1">{emailResult}</p>}
         </form>
       )}
-    </Card>
+    </div>
   );
 }
 
@@ -183,25 +187,47 @@ export default function ProjectFiles() {
     return <p className="text-ink/60 text-sm">Select a project from Overview first.</p>;
   }
 
+  // Group files by drawing, same organizing principle as the Drawings page,
+  // so all revisions of A-101 sit together instead of scattered across the list.
+  const grouped = new Map<string, { number: string; title: string; discipline: string | null; files: ProjectFile[] }>();
+  for (const f of files) {
+    if (!grouped.has(f.drawing_id)) {
+      grouped.set(f.drawing_id, { number: f.drawing_number, title: f.drawing_title, discipline: f.discipline, files: [] });
+    }
+    grouped.get(f.drawing_id)!.files.push(f);
+  }
+  const groups = Array.from(grouped.values()).sort((a, b) => a.number.localeCompare(b.number));
+
   return (
     <div>
       <SectionHeading eyebrow={`FILES · ${activeProjectName ?? ""}`} title="CAD files" />
       <p className="text-ink/60 text-sm mb-6">
-        Every uploaded file across all drawings in this project. Use Share to control which categories can see a
-        file, or Email to send a secure link to anyone.
+        Every uploaded file, grouped by drawing. Use Share to control which categories can see a file, or Email to
+        send a secure link to anyone.
       </p>
 
       {loading && <p className="text-line text-sm">Loading…</p>}
 
-      {!loading && files.length === 0 && (
+      {!loading && groups.length === 0 && (
         <Card className="text-center py-10">
           <p className="text-ink/60 text-sm">No files uploaded yet. Upload drawings from the Drawings page.</p>
         </Card>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {files.map((f) => (
-          <FileRow key={f.revision_id} file={f} onChanged={load} />
+      <div className="space-y-4">
+        {groups.map((group) => (
+          <Card key={group.number}>
+            <div className="mb-1">
+              <p className="font-mono text-xs text-amber-dark mb-1">{group.number}</p>
+              <h3 className="font-display font-semibold text-ink">{group.title}</h3>
+              {group.discipline && <p className="text-ink/50 text-xs mt-0.5">{group.discipline}</p>}
+            </div>
+            <div className="mt-2">
+              {group.files.map((f) => (
+                <FileActions key={f.revision_id} file={f} onChanged={load} />
+              ))}
+            </div>
+          </Card>
         ))}
       </div>
     </div>

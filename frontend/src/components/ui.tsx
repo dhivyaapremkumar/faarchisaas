@@ -12,9 +12,14 @@ const STATUS_STYLES: Record<string, string> = {
   in_progress: "bg-amber/15 text-amber-dark",
   done: "bg-site-green/10 text-site-green",
   overdue: "bg-site-rust/10 text-site-rust",
+  // Drawing revision stages
+  scheme: "bg-line/10 text-line",
+  revisions: "bg-amber/15 text-amber-dark",
+  working_drawings: "bg-blueprint/10 text-blueprint",
   issued_for_construction: "bg-site-green/10 text-site-green",
-  issued_for_review: "bg-amber/15 text-amber-dark",
   superseded: "bg-line/10 text-line",
+  // Legacy values, kept for any old data
+  issued_for_review: "bg-amber/15 text-amber-dark",
   draft: "bg-line/10 text-line",
   pending_review: "bg-amber/15 text-amber-dark",
   published: "bg-site-green/10 text-site-green",
@@ -24,11 +29,20 @@ const STATUS_STYLES: Record<string, string> = {
   confirmed: "bg-site-green/10 text-site-green",
 };
 
+const STATUS_LABELS: Record<string, string> = {
+  scheme: "Scheme",
+  revisions: "Revisions",
+  working_drawings: "Working Drawings",
+  issued_for_construction: "Issued for Construction (Approved)",
+  superseded: "Superseded",
+};
+
 export function StatusBadge({ status }: { status: string }) {
   const style = STATUS_STYLES[status] ?? "bg-line/10 text-line";
+  const label = STATUS_LABELS[status] ?? status.replace(/_/g, " ");
   return (
     <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-mono uppercase tracking-wide ${style}`}>
-      {status.replace(/_/g, " ")}
+      {label}
     </span>
   );
 }

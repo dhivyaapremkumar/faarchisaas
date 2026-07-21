@@ -37,6 +37,24 @@ def get_signed_url(object_key: str, expires_in: int = 3600) -> str:
     return _r2_signed_url(object_key, expires_in)
 
 
+def delete_file(object_key: str) -> None:
+    if settings.STORAGE_BACKEND == "local":
+        _local_delete(object_key)
+    else:
+        _r2_delete(object_key)
+
+
+def _local_delete(object_key: str) -> None:
+    full_path = os.path.join(LOCAL_STORAGE_ROOT, object_key)
+    if os.path.exists(full_path):
+        os.remove(full_path)
+
+
+def _r2_delete(object_key: str) -> None:
+    client = get_r2_client()
+    client.delete_object(Bucket=settings.R2_BUCKET_NAME, Key=object_key)
+
+
 # ---------- Local disk backend ----------
 
 def _local_upload(file_bytes: bytes, object_key: str) -> str:
