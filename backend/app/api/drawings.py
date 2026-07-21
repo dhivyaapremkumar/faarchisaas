@@ -3,12 +3,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.core.deps import get_scoped_db, get_current_user, CurrentUser, require_roles
-from app.core.categories import TEAM_CATEGORIES
+from app.core.categories import TEAM_CATEGORIES, DRAWING_STATUSES
 from app.models.models import Drawing, DrawingRevision, ProjectMembership, FileAccessGrant, User
 from app.schemas.drawings import (
     DrawingCreate, DrawingOut, DrawingRevisionOut, ShareRevisionRequest, EmailRevisionRequest,
 )
-from app.services.storage import build_object_key, upload_file, get_signed_url
+from app.services.storage import build_object_key, upload_file, get_signed_url, delete_file
 from app.services.audit import log_action
 from app.services.email import send_email
 
@@ -40,9 +40,18 @@ async def _has_access(db: AsyncSession, revision: DrawingRevision, current_user:
     either on their category (e.g. all Electrical vendors) or on their
     specific user_id. No grant at all means no access - default deny,
     especially important for the Client category per the original design.
+
+    Additionally: clients only ever see files marked "issued_for_construction"
+    (the final approved stage), regardless of category grants - intermediate
+    stages (Scheme, Revisions, Working Drawings) stay hidden from clients
+    even if a file is otherwise shared with the Client category, since those
+    stages aren't meant for client-facing review.
     """
     if current_user.role in ARCHITECT_ROLES:
         return True
+
+    if current_user.role == "client" and revision.status != "issued_for_construction":
+        return False
 
     result = await db.execute(
         select(FileAccessGrant).where(FileAccessGrant.drawing_revision_id == revision.id)
@@ -88,7 +97,7 @@ async def upload_revision(
     drawing_id: str,
     revision_label: str = Form(...),
     changelog: str = Form(""),
-    status: str = Form("issued_for_review"),
+    status: str = Form("scheme"),
     shared_categories: str = Form(""),  # comma-separated, e.g. "Structural,Client"
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_scoped_db),
@@ -100,6 +109,9 @@ async def upload_revision(
     an empty shared_categories means only architects can see it until
     explicitly shared (via this field, or later through the /share endpoint).
     """
+    if status not in DRAWING_STATUSES:
+        raise HTTPException(status_code=400, detail=f"status must be one of {DRAWING_STATUSES}")
+
     result = await db.execute(select(Drawing).where(Drawing.id == drawing_id))
     drawing = result.scalar_one_or_none()
     if not drawing:
@@ -267,3 +279,39 @@ async def email_revision(
     if not sent:
         raise HTTPException(status_code=502, detail="Email could not be sent - check EMAIL_API_KEY is configured correctly")
     return {"status": "sent", "recipient": payload.recipient_email}
+
+
+@router.delete(
+    "/{drawing_id}/revisions/{revision_id}",
+    dependencies=[Depends(require_roles(*ARCHITECT_ROLES))],
+)
+async def delete_revision(
+    drawing_id: str,
+    revision_id: str,
+    db: AsyncSession = Depends(get_scoped_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """
+    Permanently deletes an uploaded file - both the stored file itself and
+    its database record, plus any sharing grants attached to it. This is
+    irreversible; the frontend confirms with the person before calling this.
+    """
+    result = await db.execute(
+        select(DrawingRevision).where(DrawingRevision.id == revision_id, DrawingRevision.drawing_id == drawing_id)
+    )
+    revision = result.scalar_one_or_none()
+    if not revision:
+        raise HTTPException(status_code=404, detail="Revision not found")
+
+    grants = await db.execute(select(FileAccessGrant).where(FileAccessGrant.drawing_revision_id == revision_id))
+    for grant in grants.scalars().all():
+        await db.delete(grant)
+
+    delete_file(revision.file_url)  # remove from disk/R2 - if this fails, we still remove the DB record below
+
+    await log_action(db, current_user.org_id, current_user.user_id, "drawing_revision.delete",
+                      entity_type="drawing_revision", entity_id=revision_id, project_id=str(revision.project_id),
+                      metadata={"revision_label": revision.revision_label})
+
+    await db.delete(revision)
+    return {"status": "deleted"}
