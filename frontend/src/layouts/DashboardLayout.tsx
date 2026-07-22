@@ -13,22 +13,35 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { label: "Overview", path: "/", code: "OVR" },
     { label: "Drawings", path: "/drawings", code: "DWG" },
     { label: "CAD Files", path: "/files", code: "FIL" },
+    { label: "Progress", path: "/progress", code: "PRG" },
     { label: "Site Meetings", path: "/meetings", code: "MOM" },
     { label: "Team", path: "/team", code: "TM" },
+    { label: "Vendors", path: "/vendors", code: "VND" },
+    { label: "Contacts", path: "/contacts", code: "CON" },
   ],
   vendor: [
     { label: "My Tasks", path: "/", code: "TSK" },
     { label: "Drawings", path: "/drawings", code: "DWG" },
+    { label: "Progress", path: "/progress", code: "PRG" },
+    { label: "Contacts", path: "/contacts", code: "CON" },
+  ],
+  onboarding: [
+    { label: "Progress", path: "/", code: "PRG" },
+    { label: "Drawings", path: "/drawings", code: "DWG" },
+    { label: "Contacts", path: "/contacts", code: "CON" },
   ],
   client: [
     { label: "Project Status", path: "/", code: "STA" },
     { label: "Drawings", path: "/drawings", code: "DWG" },
+    { label: "Progress", path: "/progress", code: "PRG" },
+    { label: "Contacts", path: "/contacts", code: "CON" },
   ],
 };
 
 function roleGroup(role: Role | null): keyof typeof NAV_BY_ROLE {
   if (role === "owner" || role === "architect_admin" || role === "architect_staff") return "architect";
   if (role === "vendor") return "vendor";
+  if (role === "onboarding") return "onboarding";
   return "client";
 }
 
