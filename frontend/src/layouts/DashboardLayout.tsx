@@ -14,6 +14,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { label: "Drawings", path: "/drawings", code: "DWG" },
     { label: "CAD Files", path: "/files", code: "FIL" },
     { label: "Progress", path: "/progress", code: "PRG" },
+    { label: "Tasks", path: "/tasks", code: "TSK" },
     { label: "Site Meetings", path: "/meetings", code: "MOM" },
     { label: "Team", path: "/team", code: "TM" },
     { label: "Vendors", path: "/vendors", code: "VND" },
