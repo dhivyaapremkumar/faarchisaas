@@ -9,7 +9,7 @@ from app.core.categories import TEAM_CATEGORIES
 from app.models.models import (
     Project, Drawing, DrawingRevision, Meeting, ProjectMembership, User, FileAccessGrant,
 )
-from app.schemas.auth import ProjectOut
+from app.schemas.auth import ProjectOut, ProjectCreate
 from app.schemas.drawings import DrawingOut, ProjectFileOut
 from app.schemas.projects import (
     MeetingListOut, TeamMemberOut, AddMemberRequest, AddMemberResponse,
@@ -35,6 +35,29 @@ async def list_projects(
     """
     result = await db.execute(select(Project))
     return result.scalars().all()
+
+
+@router.post("", response_model=ProjectOut, dependencies=[Depends(require_roles(*ARCHITECT_ROLES))])
+async def create_project(
+    payload: ProjectCreate,
+    db: AsyncSession = Depends(get_scoped_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    project = Project(
+        org_id=current_user.org_id,
+        name=payload.name,
+        address=payload.address,
+        status=payload.status,
+        created_by=current_user.user_id,
+    )
+    db.add(project)
+    await db.flush()
+
+    await log_action(db, current_user.org_id, current_user.user_id, "project.create",
+                      entity_type="project", entity_id=str(project.id),
+                      metadata={"name": payload.name})
+
+    return project
 
 
 @router.get("/{project_id}/drawings", response_model=list[DrawingOut])
