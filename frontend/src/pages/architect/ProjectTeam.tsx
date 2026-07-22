@@ -33,7 +33,7 @@ function MemberCard({ member, projectId, onChanged }: { member: TeamMember; proj
   const [saving, setSaving] = useState(false);
   const [resetResult, setResetResult] = useState<{ email: string; temp_password: string } | null>(null);
   const [resetting, setResetting] = useState(false);
-
+  const [removing, setRemoving] = useState(false);
   async function saveEdit(e: FormEvent) {
     e.preventDefault();
     setSaving(true);
@@ -59,6 +59,17 @@ function MemberCard({ member, projectId, onChanged }: { member: TeamMember; proj
     }
   }
 
+  async function removeMember() {
+    if (!confirm(`Remove ${member.full_name} from this project? Their login stays active for any other projects they're on.`)) return;
+    setRemoving(true);
+    try {
+      await api.delete(`/projects/${projectId}/members/${member.id}`);
+      onChanged();
+    } finally {
+      setRemoving(false);
+    }
+  }
+
   return (
     <Card>
       {!editing ? (
@@ -77,6 +88,9 @@ function MemberCard({ member, projectId, onChanged }: { member: TeamMember; proj
             </button>
             <button onClick={resetPassword} disabled={resetting} className="text-xs font-mono text-site-rust hover:text-site-rust/70 uppercase">
               {resetting ? "…" : "Reset pw"}
+            </button>
+            <button onClick={removeMember} disabled={removing} className="text-xs font-mono text-site-rust hover:text-site-rust/70 uppercase">
+              {removing ? "…" : "Remove"}
             </button>
           </div>
         </div>
