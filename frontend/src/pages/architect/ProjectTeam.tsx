@@ -1,7 +1,7 @@
 import { useEffect, useState, FormEvent } from "react";
 import { api } from "../../lib/api";
 import { useActiveProject } from "../../lib/activeProject";
-import { VENDOR_CATEGORIES } from "../../lib/categories";
+import { VENDOR_CATEGORIES, TEAM_CATEGORIES } from "../../lib/categories";
 import { Card, StatusBadge, CategoryBadge, SectionHeading } from "../../components/ui";
 
 interface TeamMember {
@@ -9,6 +9,7 @@ interface TeamMember {
   user_id: string;
   full_name: string;
   email: string;
+  phone: string | null;
   role: string;
   trade: string | null;
   category: string | null;
@@ -23,12 +24,105 @@ interface AddMemberResult {
   note: string;
 }
 
+function MemberCard({ member, projectId, onChanged }: { member: TeamMember; projectId: string; onChanged: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [fullName, setFullName] = useState(member.full_name);
+  const [phone, setPhone] = useState(member.phone ?? "");
+  const [category, setCategory] = useState(member.category ?? "Others");
+  const [trade, setTrade] = useState(member.trade ?? "");
+  const [saving, setSaving] = useState(false);
+  const [resetResult, setResetResult] = useState<{ email: string; temp_password: string } | null>(null);
+  const [resetting, setResetting] = useState(false);
+
+  async function saveEdit(e: FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await api.patch(`/projects/${projectId}/members/${member.id}`, {
+        full_name: fullName, phone, category, trade: trade || null,
+      });
+      setEditing(false);
+      onChanged();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function resetPassword() {
+    if (!confirm(`Generate a new password for ${member.full_name}? Their old password will stop working.`)) return;
+    setResetting(true);
+    try {
+      const res = await api.post(`/projects/${projectId}/members/${member.id}/reset-password`);
+      setResetResult(res.data);
+    } finally {
+      setResetting(false);
+    }
+  }
+
+  return (
+    <Card>
+      {!editing ? (
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-ink">{member.full_name}</p>
+            <p className="text-xs text-ink/50">{member.email}</p>
+            {member.phone && <p className="text-xs text-ink/50">{member.phone}</p>}
+            {member.trade && <p className="font-mono text-xs text-amber-dark mt-1">{member.trade}</p>}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xs text-line uppercase">{member.role}</span>
+            <StatusBadge status={member.status} />
+            <button onClick={() => setEditing(true)} className="text-xs font-mono text-blueprint hover:text-amber-dark uppercase">
+              Edit
+            </button>
+            <button onClick={resetPassword} disabled={resetting} className="text-xs font-mono text-site-rust hover:text-site-rust/70 uppercase">
+              {resetting ? "…" : "Reset pw"}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <form onSubmit={saveEdit} className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name"
+            className="px-2.5 py-1.5 rounded-md border border-line/30 text-sm" />
+          <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone number"
+            className="px-2.5 py-1.5 rounded-md border border-line/30 text-sm" />
+          <select value={category} onChange={(e) => setCategory(e.target.value)}
+            className="px-2.5 py-1.5 rounded-md border border-line/30 text-sm">
+            {TEAM_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <input value={trade} onChange={(e) => setTrade(e.target.value)} placeholder="Trade detail"
+            className="px-2.5 py-1.5 rounded-md border border-line/30 text-sm" />
+          <div className="md:col-span-2 flex gap-2">
+            <button type="submit" disabled={saving}
+              className="bg-blueprint hover:bg-blueprint-light text-white text-xs font-medium px-3 py-1.5 rounded-md disabled:opacity-60">
+              {saving ? "Saving…" : "Save"}
+            </button>
+            <button type="button" onClick={() => setEditing(false)} className="text-xs text-ink/50 px-3 py-1.5">
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+
+      {resetResult && (
+        <div className="mt-3 pt-3 border-t border-line/10">
+          <p className="text-xs text-ink mb-1">New password for {resetResult.email} — share securely, shown once:</p>
+          <p className="font-mono text-sm bg-paper rounded px-2 py-1 inline-block">{resetResult.temp_password}</p>
+          <button onClick={() => setResetResult(null)} className="block mt-1 text-[11px] font-mono text-line uppercase hover:text-ink">
+            Dismiss
+          </button>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export default function ProjectTeam() {
   const { activeProjectId, activeProjectName } = useActiveProject();
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ full_name: "", email: "", role: "vendor", trade: "", category: "Structural" });
+  const [form, setForm] = useState({ full_name: "", email: "", phone: "", role: "vendor", trade: "", category: "Structural" });
   const [saving, setSaving] = useState(false);
   const [lastAdded, setLastAdded] = useState<AddMemberResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -52,13 +146,14 @@ export default function ProjectTeam() {
       const payload = {
         full_name: form.full_name,
         email: form.email,
+        phone: form.phone || null,
         role: form.role,
         trade: form.role === "vendor" ? form.trade || null : null,
-        category: form.role === "vendor" ? form.category : null, // client/onboarding get sensible defaults server-side
+        category: form.role === "vendor" ? form.category : null,
       };
       const res = await api.post<AddMemberResult>(`/projects/${activeProjectId}/members`, payload);
       setLastAdded(res.data);
-      setForm({ full_name: "", email: "", role: "vendor", trade: "", category: "Structural" });
+      setForm({ full_name: "", email: "", phone: "", role: "vendor", trade: "", category: "Structural" });
       setShowForm(false);
       load();
     } catch (err: any) {
@@ -72,7 +167,6 @@ export default function ProjectTeam() {
     return <p className="text-ink/60 text-sm">Select a project from Overview first.</p>;
   }
 
-  // Group members by category for display, in a fixed sensible order
   const categoryOrder = ["Architect", "Client", "Structural", "Electrical", "Plumbing", "A/C", "Others"];
   const grouped: Record<string, TeamMember[]> = {};
   for (const m of members) {
@@ -142,6 +236,15 @@ export default function ProjectTeam() {
               />
             </div>
             <div>
+              <label className="block text-xs font-mono text-line uppercase mb-1">Phone number</label>
+              <input
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                placeholder="+91 98765 43210"
+                className="w-full px-3 py-2 rounded-md border border-line/30 text-sm focus:outline-none focus:ring-2 focus:ring-amber"
+              />
+            </div>
+            <div>
               <label className="block text-xs font-mono text-line uppercase mb-1">Role</label>
               <select
                 value={form.role}
@@ -207,17 +310,7 @@ export default function ProjectTeam() {
             <div className="mb-2"><CategoryBadge category={cat} /></div>
             <div className="space-y-2">
               {grouped[cat].map((m) => (
-                <Card key={m.id} className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-ink">{m.full_name}</p>
-                    <p className="text-xs text-ink/50">{m.email}</p>
-                    {m.trade && <p className="font-mono text-xs text-amber-dark mt-1">{m.trade}</p>}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs text-line uppercase">{m.role}</span>
-                    <StatusBadge status={m.status} />
-                  </div>
-                </Card>
+                <MemberCard key={m.id} member={m} projectId={activeProjectId} onChanged={load} />
               ))}
             </div>
           </div>
