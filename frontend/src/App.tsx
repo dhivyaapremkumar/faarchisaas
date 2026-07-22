@@ -11,6 +11,7 @@ import ProjectMeetings from "./pages/architect/ProjectMeetings";
 import ProjectTeam from "./pages/architect/ProjectTeam";
 import VendorDirectory from "./pages/architect/VendorDirectory";
 import ProjectTasks from "./pages/architect/ProjectTasks";
+import MyProfile from "./pages/MyProfile";
 import ProjectProgress from "./pages/ProjectProgress";
 import ProjectContacts from "./pages/ProjectContacts";
 import VendorDashboard from "./pages/vendor/Dashboard";
@@ -75,6 +76,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <ProjectTeam />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <MyProfile />
                 </ProtectedRoute>
               }
             />
