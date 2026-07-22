@@ -1,4 +1,8 @@
 :80 {
+    log {
+        output stdout
+        format console
+    }
     handle /api/* {
         reverse_proxy backend:8000
     }

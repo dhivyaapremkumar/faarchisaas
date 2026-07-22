@@ -274,7 +274,8 @@ async def email_revision(
         <p><strong>{drawing.drawing_number} — {drawing.title}</strong><br/>
         Revision: {revision.revision_label} ({revision.status.replace('_', ' ')})</p>
         {f'<p>{payload.message}</p>' if payload.message else ''}
-        <p><a href="{link}">View / download the file</a> (link expires in 7 days)</p>
+        <p>Copy and paste this link into your browser to view/download the file (expires in 7 days):</p>
+        <p style="font-family: monospace; word-break: break-all; background: #f5f5f5; padding: 10px; border-radius: 4px;">{link}</p>
     """
     sent = await send_email(payload.recipient_email, subject, body)
 

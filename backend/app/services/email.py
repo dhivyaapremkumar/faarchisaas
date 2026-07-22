@@ -24,7 +24,10 @@ async def send_email(to: str, subject: str, html_body: str) -> bool:
                     "html": html_body,
                 },
             )
-            return response.status_code < 300
+            if response.status_code >= 300:
+                print(f"[email] Resend rejected the send: {response.status_code} - {response.text}")
+                return False
+            return True
     except httpx.HTTPError as e:
         print(f"[email] Send failed (non-blocking): {e}")
         return False
