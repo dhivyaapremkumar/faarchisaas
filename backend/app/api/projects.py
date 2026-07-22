@@ -11,7 +11,10 @@ from app.models.models import (
 )
 from app.schemas.auth import ProjectOut
 from app.schemas.drawings import DrawingOut, ProjectFileOut
-from app.schemas.projects import MeetingListOut, TeamMemberOut, AddMemberRequest, AddMemberResponse
+from app.schemas.projects import (
+    MeetingListOut, TeamMemberOut, AddMemberRequest, AddMemberResponse,
+    UpdateMemberRequest, ResetPasswordResponse,
+)
 from app.services.audit import log_action
 from app.services.storage import get_signed_url
 
@@ -162,6 +165,7 @@ async def list_project_members(
             user_id=str(user.id),
             full_name=user.full_name,
             email=user.email,
+            phone=user.phone,
             role=membership.role,
             trade=membership.trade,
             category=membership.category,
@@ -215,6 +219,7 @@ async def add_project_member(
         user = User(
             email=payload.email,
             full_name=payload.full_name,
+            phone=payload.phone,
             password_hash=hash_password(temp_password),
         )
         db.add(user)
@@ -255,4 +260,96 @@ async def add_project_member(
         role=payload.role,
         temp_password=temp_password,
         note=note,
+    )
+
+
+@router.patch(
+    "/{project_id}/members/{membership_id}",
+    response_model=TeamMemberOut,
+    dependencies=[Depends(require_roles(*ARCHITECT_ROLES))],
+)
+async def update_project_member(
+    project_id: str,
+    membership_id: str,
+    payload: UpdateMemberRequest,
+    db: AsyncSession = Depends(get_scoped_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """
+    Edits a team member's details. full_name/phone live on the User record
+    (shared across every project that person's on); category/trade are
+    per-project, since the same person could work a different category on
+    a different job.
+    """
+    result = await db.execute(
+        select(ProjectMembership).where(ProjectMembership.id == membership_id, ProjectMembership.project_id == project_id)
+    )
+    membership = result.scalar_one_or_none()
+    if not membership:
+        raise HTTPException(status_code=404, detail="Team member not found on this project")
+
+    if payload.category is not None and payload.category not in TEAM_CATEGORIES:
+        raise HTTPException(status_code=400, detail=f"category must be one of {TEAM_CATEGORIES}")
+
+    user_result = await db.execute(select(User).where(User.id == membership.user_id))
+    user = user_result.scalar_one_or_none()
+
+    if payload.full_name is not None:
+        user.full_name = payload.full_name
+    if payload.phone is not None:
+        user.phone = payload.phone
+    if payload.category is not None:
+        membership.category = payload.category
+    if payload.trade is not None:
+        membership.trade = payload.trade
+
+    await log_action(db, current_user.org_id, current_user.user_id, "project_member.update",
+                      entity_type="project_membership", entity_id=membership_id, project_id=project_id)
+
+    await db.flush()
+    return TeamMemberOut(
+        id=str(membership.id), user_id=str(user.id), full_name=user.full_name, email=user.email,
+        phone=user.phone, role=membership.role, trade=membership.trade, category=membership.category,
+        status=membership.status,
+    )
+
+
+@router.post(
+    "/{project_id}/members/{membership_id}/reset-password",
+    response_model=ResetPasswordResponse,
+    dependencies=[Depends(require_roles(*ARCHITECT_ROLES))],
+)
+async def reset_member_password(
+    project_id: str,
+    membership_id: str,
+    db: AsyncSession = Depends(get_scoped_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """
+    Lets an architect generate a fresh password for a team member directly
+    from the UI, without needing VPS/terminal access - the same operation
+    the reset_password script does, exposed as a proper in-app action.
+    Shown once in the response; if lost, just reset again.
+    """
+    result = await db.execute(
+        select(ProjectMembership).where(ProjectMembership.id == membership_id, ProjectMembership.project_id == project_id)
+    )
+    membership = result.scalar_one_or_none()
+    if not membership:
+        raise HTTPException(status_code=404, detail="Team member not found on this project")
+
+    user_result = await db.execute(select(User).where(User.id == membership.user_id))
+    user = user_result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    new_password = secrets.token_urlsafe(9)
+    user.password_hash = hash_password(new_password)
+
+    await log_action(db, current_user.org_id, current_user.user_id, "project_member.reset_password",
+                      entity_type="user", entity_id=str(user.id), project_id=project_id)
+
+    return ResetPasswordResponse(
+        email=user.email, temp_password=new_password,
+        note="Share this password with them securely - it will not be shown again.",
     )
