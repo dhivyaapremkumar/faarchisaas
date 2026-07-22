@@ -26,12 +26,17 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left: blueprint grid panel, signature element */}
-      <div className="hidden lg:flex lg:w-1/2 bg-blueprint relative overflow-hidden items-center justify-center">
-        <div className="absolute inset-0 bg-blueprint-grid bg-grid opacity-40" />
-        <div className="relative z-10 max-w-md px-12 text-paper-light">
-          <p className="font-mono text-xs tracking-widest text-amber uppercase mb-4">DWG · A-000 · Site Overview</p>
-          <h1 className="font-display text-4xl font-semibold leading-tight mb-4">
+      {/* Left: gradient blueprint panel with drifting grid and glow orbs */}
+      <div
+        className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center"
+        style={{ background: "linear-gradient(135deg, #14304D 0%, #1E4468 50%, #2A5A8C 100%)" }}
+      >
+        <div className="absolute inset-0 bg-blueprint-grid bg-grid opacity-30 animate-grid-drift" />
+        <div className="absolute w-72 h-72 rounded-full bg-amber glow-orb animate-float-glow -top-10 -left-10" />
+        <div className="absolute w-72 h-72 rounded-full bg-violet glow-orb-2 animate-float-glow-delayed -bottom-16 -right-5" />
+        <div className="relative z-10 max-w-md px-12 text-paper-light animate-fade-up">
+          <p className="font-mono text-xs tracking-widest text-amber-light uppercase mb-4">DWG · A-000 · Site Overview</p>
+          <h1 className="font-display text-4xl font-bold leading-tight mb-4">
             Every drawing, every task,<br />one project record.
           </h1>
           <p className="text-paper/70 font-body text-sm leading-relaxed">
@@ -43,9 +48,9 @@ export default function Login() {
 
       {/* Right: login form */}
       <div className="flex-1 flex items-center justify-center bg-paper-light px-8">
-        <form onSubmit={handleSubmit} className="w-full max-w-sm">
+        <form onSubmit={handleSubmit} className="w-full max-w-sm animate-fade-up" style={{ animationDelay: "100ms" }}>
           <p className="font-mono text-xs tracking-widest text-line uppercase mb-2">Sign in</p>
-          <h2 className="font-display text-2xl font-semibold text-ink mb-8">Welcome back</h2>
+          <h2 className="font-display text-2xl font-bold text-ink mb-8">Welcome back</h2>
 
           <label className="block text-sm font-medium text-ink mb-1.5">Email</label>
           <input
@@ -53,7 +58,7 @@ export default function Login() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full mb-4 px-3.5 py-2.5 rounded-md border border-line/30 bg-white text-ink text-sm focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent"
+            className="w-full mb-4 px-3.5 py-2.5 rounded-lg border border-line/30 bg-white text-ink text-sm focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-shadow"
             placeholder="you@yourfirm.com"
           />
 
@@ -63,7 +68,7 @@ export default function Login() {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full mb-2 px-3.5 py-2.5 rounded-md border border-line/30 bg-white text-ink text-sm focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent"
+            className="w-full mb-2 px-3.5 py-2.5 rounded-lg border border-line/30 bg-white text-ink text-sm focus:outline-none focus:ring-2 focus:ring-amber focus:border-transparent transition-shadow"
             placeholder="••••••••"
           />
 
@@ -72,7 +77,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full mt-6 bg-blueprint hover:bg-blueprint-light text-white font-medium text-sm py-2.5 rounded-md transition-colors disabled:opacity-60"
+            className="btn-glow w-full mt-6 bg-amber-gradient text-white font-semibold text-sm py-3 rounded-lg disabled:opacity-60"
           >
             {loading ? "Signing in…" : "Sign in"}
           </button>

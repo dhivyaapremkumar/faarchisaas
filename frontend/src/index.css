@@ -30,3 +30,44 @@ body {
   border-bottom: 1.5px solid;
   border-right: 1.5px solid;
 }
+
+.card-hover {
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px -12px rgba(20, 48, 77, 0.2);
+}
+
+.btn-glow {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  box-shadow: 0 4px 14px rgba(232, 163, 61, 0.35);
+}
+.btn-glow:hover {
+  box-shadow: 0 6px 20px rgba(232, 163, 61, 0.5);
+  transform: translateY(-1px);
+}
+
+.glow-orb {
+  filter: blur(40px);
+}
+.glow-orb-2 {
+  filter: blur(50px);
+}
+
+/* Respect the OS-level reduced-motion setting - turns off decorative
+   animation for anyone who has it enabled (motion sensitivity, accessibility
+   settings, battery saving), while everything still functions normally. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .card-hover:hover {
+    transform: none;
+  }
+}

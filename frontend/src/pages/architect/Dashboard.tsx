@@ -50,8 +50,9 @@ export default function ArchitectDashboard() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {projects.map((project) => (
-          <Card key={project.id}>
+        {projects.map((project, i) => (
+          <Card key={project.id} delay={i * 60} className="relative overflow-hidden pt-6">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-amber-gradient" />
             <button
               onClick={() => setActiveProject(project.id, project.name)}
               className="w-full text-left"
@@ -63,13 +64,13 @@ export default function ArchitectDashboard() {
               {project.address && <p className="text-ink/60 text-sm mb-4">{project.address}</p>}
             </button>
             <div className="flex gap-4 pt-3 border-t border-line/10 text-xs font-mono text-line uppercase tracking-wide">
-              <Link to="/drawings" onClick={() => setActiveProject(project.id, project.name)} className="hover:text-amber-dark">
+              <Link to="/drawings" onClick={() => setActiveProject(project.id, project.name)} className="hover:text-amber-dark transition-colors">
                 Drawings →
               </Link>
-              <Link to="/meetings" onClick={() => setActiveProject(project.id, project.name)} className="hover:text-amber-dark">
+              <Link to="/meetings" onClick={() => setActiveProject(project.id, project.name)} className="hover:text-amber-dark transition-colors">
                 Meetings →
               </Link>
-              <Link to="/team" onClick={() => setActiveProject(project.id, project.name)} className="hover:text-amber-dark">
+              <Link to="/team" onClick={() => setActiveProject(project.id, project.name)} className="hover:text-amber-dark transition-colors">
                 Team →
               </Link>
             </div>
