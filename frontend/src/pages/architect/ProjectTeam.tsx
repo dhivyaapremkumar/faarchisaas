@@ -2,7 +2,7 @@ import { useEffect, useState, FormEvent } from "react";
 import { api } from "../../lib/api";
 import { useActiveProject } from "../../lib/activeProject";
 import { VENDOR_CATEGORIES } from "../../lib/categories";
-import { Card, StatusBadge, SectionHeading } from "../../components/ui";
+import { Card, StatusBadge, CategoryBadge, SectionHeading } from "../../components/ui";
 
 interface TeamMember {
   id: string;
@@ -204,7 +204,7 @@ export default function ProjectTeam() {
         .filter((cat) => grouped[cat]?.length)
         .map((cat) => (
           <div key={cat} className="mb-6">
-            <p className="font-mono text-xs text-line uppercase tracking-wide mb-2">{cat}</p>
+            <div className="mb-2"><CategoryBadge category={cat} /></div>
             <div className="space-y-2">
               {grouped[cat].map((m) => (
                 <Card key={m.id} className="flex items-center justify-between">

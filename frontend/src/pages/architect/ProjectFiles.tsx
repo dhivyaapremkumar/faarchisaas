@@ -2,7 +2,7 @@ import { useEffect, useState, FormEvent } from "react";
 import { api } from "../../lib/api";
 import { useActiveProject } from "../../lib/activeProject";
 import { TEAM_CATEGORIES } from "../../lib/categories";
-import { Card, StatusBadge, SectionHeading } from "../../components/ui";
+import { Card, StatusBadge, CategoryBadge, SectionHeading } from "../../components/ui";
 
 interface ProjectFile {
   drawing_id: string;
@@ -69,8 +69,13 @@ function FileActions({ file, onChanged }: { file: ProjectFile; onChanged: () => 
 
   async function handleDelete() {
     if (!confirm(`Delete "${file.revision_label}" permanently? This can't be undone.`)) return;
-    await api.delete(`/drawings/${file.drawing_id}/revisions/${file.revision_id}`);
-    onChanged();
+    try {
+      await api.delete(`/drawings/${file.drawing_id}/revisions/${file.revision_id}`);
+      onChanged();
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail ?? "Delete failed. You may not have permission, or the file may already be gone.";
+      alert(detail);
+    }
   }
 
   return (
@@ -105,7 +110,10 @@ function FileActions({ file, onChanged }: { file: ProjectFile; onChanged: () => 
       </div>
 
       {file.shared_categories.length > 0 && (
-        <p className="text-[11px] text-ink/40 mt-1">Shared with: {file.shared_categories.join(", ")}</p>
+        <p className="text-[11px] text-ink/40 mt-1 flex items-center gap-1.5 flex-wrap">
+          Shared with:
+          {file.shared_categories.map((c) => <CategoryBadge key={c} category={c} />)}
+        </p>
       )}
 
       {showShare && (
