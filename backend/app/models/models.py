@@ -109,6 +109,41 @@ class FileAccessGrant(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class ProgressPhoto(Base):
+    """
+    Site photos uploaded by whoever's doing the work (site engineer, vendor,
+    onboarding staff) - organized by room/area so architects and clients can
+    see what a specific space looks like right now without digging through
+    an undifferentiated photo dump.
+    """
+    __tablename__ = "progress_photos"
+    id: Mapped[uuid.UUID] = uuid_pk()
+    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("projects.id"))
+    org_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("organizations.id"))
+    room_or_area: Mapped[str] = mapped_column(String, nullable=False)
+    caption: Mapped[str] = mapped_column(Text, nullable=True)
+    photo_url: Mapped[str] = mapped_column(String, nullable=False)
+    uploaded_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class DailyUpdate(Base):
+    """
+    A short daily log entry: what got done, what's still pending. This is
+    the plain-language progress feed clients and architects check without
+    needing to interpret raw task/drawing data themselves.
+    """
+    __tablename__ = "daily_updates"
+    id: Mapped[uuid.UUID] = uuid_pk()
+    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("projects.id"))
+    org_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("organizations.id"))
+    update_date: Mapped[datetime] = mapped_column(Date, nullable=False)
+    done_today: Mapped[str] = mapped_column(Text, nullable=True)
+    pending: Mapped[str] = mapped_column(Text, nullable=True)
+    posted_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class Meeting(Base):
     __tablename__ = "meetings"
     id: Mapped[uuid.UUID] = uuid_pk()
