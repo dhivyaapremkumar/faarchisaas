@@ -9,7 +9,7 @@ from app.core.categories import TEAM_CATEGORIES
 from app.models.models import (
     Project, Drawing, DrawingRevision, Meeting, ProjectMembership, User, FileAccessGrant,
 )
-from app.schemas.auth import ProjectOut, ProjectCreate
+from app.schemas.auth import ProjectOut, ProjectCreate, ProjectUpdate
 from app.schemas.drawings import DrawingOut, ProjectFileOut
 from app.schemas.projects import (
     MeetingListOut, TeamMemberOut, AddMemberRequest, AddMemberResponse,
@@ -57,6 +57,32 @@ async def create_project(
                       entity_type="project", entity_id=str(project.id),
                       metadata={"name": payload.name})
 
+    return project
+
+
+@router.patch("/{project_id}", response_model=ProjectOut, dependencies=[Depends(require_roles(*ARCHITECT_ROLES))])
+async def update_project(
+    project_id: str,
+    payload: ProjectUpdate,
+    db: AsyncSession = Depends(get_scoped_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    result = await db.execute(select(Project).where(Project.id == project_id))
+    project = result.scalar_one_or_none()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if payload.name is not None:
+        project.name = payload.name
+    if payload.address is not None:
+        project.address = payload.address
+    if payload.status is not None:
+        project.status = payload.status
+
+    await log_action(db, current_user.org_id, current_user.user_id, "project.update",
+                      entity_type="project", entity_id=project_id)
+
+    await db.flush()
     return project
 
 
