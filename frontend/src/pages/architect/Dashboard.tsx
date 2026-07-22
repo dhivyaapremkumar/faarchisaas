@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../lib/api";
 import { useActiveProject } from "../../lib/activeProject";
@@ -17,30 +17,107 @@ export default function ArchitectDashboard() {
   const [error, setError] = useState<string | null>(null);
   const { activeProjectId, setActiveProject } = useActiveProject();
 
-  useEffect(() => {
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ name: "", address: "", status: "planning" });
+  const [saving, setSaving] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  function load() {
     api
       .get<Project[]>("/projects")
       .then((res) => {
         setProjects(res.data);
-        // Default the active project to the first one, so sidebar/nav links have
-        // somewhere to point. Only sets it if nothing's already selected.
         if (!activeProjectId && res.data.length > 0) {
           setActiveProject(res.data[0].id, res.data[0].name);
         }
       })
       .catch(() => setError("Couldn't load projects. Check that the backend is running."))
       .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }
+
+  useEffect(load, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleCreate(e: FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setCreateError(null);
+    try {
+      const res = await api.post<Project>("/projects", form);
+      setForm({ name: "", address: "", status: "planning" });
+      setShowForm(false);
+      setActiveProject(res.data.id, res.data.name);
+      load();
+    } catch (err: any) {
+      setCreateError(err?.response?.data?.detail ?? "Couldn't create the project. Try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <div>
       <SectionHeading eyebrow="Overview" title="Your projects" />
 
+      <button
+        onClick={() => setShowForm((v) => !v)}
+        className="btn-glow mb-6 bg-amber-gradient text-white text-sm font-semibold px-4 py-2 rounded-lg"
+      >
+        {showForm ? "Cancel" : "+ New project"}
+      </button>
+
+      {showForm && (
+        <Card className="mb-6">
+          <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-mono text-line uppercase mb-1">Project name</label>
+              <input
+                required
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="Kumar Residence"
+                className="w-full px-3 py-2 rounded-lg border border-line/30 text-sm focus:outline-none focus:ring-2 focus:ring-amber"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-mono text-line uppercase mb-1">Address (optional)</label>
+              <input
+                value={form.address}
+                onChange={(e) => setForm({ ...form, address: e.target.value })}
+                placeholder="12 Anna Nagar, Chennai"
+                className="w-full px-3 py-2 rounded-lg border border-line/30 text-sm focus:outline-none focus:ring-2 focus:ring-amber"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-mono text-line uppercase mb-1">Status</label>
+              <select
+                value={form.status}
+                onChange={(e) => setForm({ ...form, status: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg border border-line/30 text-sm focus:outline-none focus:ring-2 focus:ring-amber"
+              >
+                <option value="planning">Planning</option>
+                <option value="active">Active</option>
+                <option value="on_hold">On hold</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+            <div className="md:col-span-3">
+              {createError && <p className="text-site-rust text-sm mb-2">{createError}</p>}
+              <button
+                type="submit"
+                disabled={saving}
+                className="bg-blueprint hover:bg-blueprint-light text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-60"
+              >
+                {saving ? "Creating…" : "Create project"}
+              </button>
+            </div>
+          </form>
+        </Card>
+      )}
+
       {loading && <p className="text-line text-sm">Loading projects…</p>}
       {error && <p className="text-site-rust text-sm">{error}</p>}
 
-      {!loading && !error && projects.length === 0 && (
+      {!loading && !error && projects.length === 0 && !showForm && (
         <Card className="text-center py-12">
           <p className="font-mono text-xs text-line uppercase tracking-wide mb-2">No projects yet</p>
           <p className="text-ink/70 text-sm">
