@@ -31,9 +31,12 @@ async def list_projects(
     No manual 'WHERE org_id = ...' needed here - Postgres RLS policies
     (set via get_scoped_db's session variables) already restrict the rows
     returned to this user's org, and further to their own projects if
-    their role is 'client'. This is the multi-tenant safety net in action.
+    their role isn't architect-level. This is the multi-tenant safety net
+    in action. Ordered by creation date so "the first project" (used by the
+    frontend's default-active-project logic) is deterministic, not whatever
+    order Postgres happens to return rows in.
     """
-    result = await db.execute(select(Project))
+    result = await db.execute(select(Project).order_by(Project.created_at.asc()))
     return result.scalars().all()
 
 
@@ -402,3 +405,32 @@ async def reset_member_password(
         email=user.email, temp_password=new_password,
         note="Share this password with them securely - it will not be shown again.",
     )
+
+
+@router.delete(
+    "/{project_id}/members/{membership_id}",
+    dependencies=[Depends(require_roles(*ARCHITECT_ROLES))],
+)
+async def remove_project_member(
+    project_id: str,
+    membership_id: str,
+    db: AsyncSession = Depends(get_scoped_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """
+    Removes someone from a project. Their User account and login are
+    untouched (they may be on other projects, or get re-added later) - this
+    only removes the membership/enrollment on THIS specific project.
+    """
+    result = await db.execute(
+        select(ProjectMembership).where(ProjectMembership.id == membership_id, ProjectMembership.project_id == project_id)
+    )
+    membership = result.scalar_one_or_none()
+    if not membership:
+        raise HTTPException(status_code=404, detail="Team member not found on this project")
+
+    await log_action(db, current_user.org_id, current_user.user_id, "project_member.remove",
+                      entity_type="project_membership", entity_id=membership_id, project_id=project_id)
+
+    await db.delete(membership)
+    return {"status": "removed"}
