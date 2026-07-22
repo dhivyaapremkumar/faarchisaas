@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
 import { CategoryBadge, SectionHeading, Card } from "../../components/ui";
-import { TEAM_CATEGORIES } from "../../lib/categories";
+import { VENDOR_CATEGORIES } from "../../lib/categories";
 
 interface VendorProjectRef {
   project_id: string;
@@ -61,7 +61,7 @@ export default function VendorDirectory() {
 
   // Group by category so "who's worked as Electrical" is a scan, not a search -
   // matches how the Team page organizes people, for consistency across the app.
-  const categoriesToShow = categoryFilter ? [categoryFilter] : TEAM_CATEGORIES;
+  const categoriesToShow = categoryFilter ? [categoryFilter] : VENDOR_CATEGORIES;
   const grouped: Record<string, VendorEntry[]> = {};
   for (const cat of categoriesToShow) {
     grouped[cat] = filtered.filter((v) => v.categories.includes(cat));
@@ -91,7 +91,7 @@ export default function VendorDirectory() {
           >
             All categories
           </button>
-          {TEAM_CATEGORIES.map((cat) => (
+          {VENDOR_CATEGORIES.map((cat) => (
             <button
               key={cat}
               onClick={() => setCategoryFilter(cat === categoryFilter ? null : cat)}
