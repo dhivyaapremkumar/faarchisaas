@@ -313,7 +313,7 @@ async def delete_revision(
     grants = await db.execute(select(FileAccessGrant).where(FileAccessGrant.drawing_revision_id == revision_id))
     for grant in grants.scalars().all():
         await db.delete(grant)
-
+        await db.flush()  # ensure grant deletions are applied before deleting the revision they reference
     delete_file(revision.file_url)  # remove from disk/R2 - if this fails, we still remove the DB record below
 
     await log_action(db, current_user.org_id, current_user.user_id, "drawing_revision.delete",
