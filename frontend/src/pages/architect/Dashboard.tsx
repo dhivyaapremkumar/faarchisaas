@@ -11,6 +11,85 @@ interface Project {
   address: string | null;
 }
 
+function ProjectCard({
+  project,
+  delay,
+  onChanged,
+  onSelect,
+}: {
+  project: Project;
+  delay: number;
+  onChanged: () => void;
+  onSelect: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(project.name);
+  const [address, setAddress] = useState(project.address ?? "");
+  const [status, setStatus] = useState(project.status);
+  const [saving, setSaving] = useState(false);
+
+  async function saveEdit(e: FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await api.patch(`/projects/${project.id}`, { name, address: address || null, status });
+      setEditing(false);
+      onChanged();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (editing) {
+    return (
+      <Card delay={delay} className="relative overflow-hidden pt-6">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-amber-gradient" />
+        <form onSubmit={saveEdit} className="space-y-2">
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Project name"
+            className="w-full px-2.5 py-1.5 rounded-md border border-line/30 text-sm" />
+          <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Address"
+            className="w-full px-2.5 py-1.5 rounded-md border border-line/30 text-sm" />
+          <select value={status} onChange={(e) => setStatus(e.target.value)}
+            className="w-full px-2.5 py-1.5 rounded-md border border-line/30 text-sm">
+            <option value="planning">Planning</option>
+            <option value="active">Active</option>
+            <option value="on_hold">On hold</option>
+            <option value="completed">Completed</option>
+          </select>
+          <div className="flex gap-2">
+            <button type="submit" disabled={saving}
+              className="bg-blueprint hover:bg-blueprint-light text-white text-xs font-medium px-3 py-1.5 rounded-md disabled:opacity-60">
+              {saving ? "Saving…" : "Save"}
+            </button>
+            <button type="button" onClick={() => setEditing(false)} className="text-xs text-ink/50 px-3 py-1.5">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </Card>
+    );
+  }
+
+  return (
+    <Card delay={delay} className="relative overflow-hidden pt-6">
+      <div className="absolute top-0 left-0 right-0 h-1 bg-amber-gradient" />
+      <button onClick={onSelect} className="w-full text-left">
+        <div className="flex items-start justify-between mb-3">
+          <h3 className="font-display font-semibold text-ink text-base">{project.name}</h3>
+          <StatusBadge status={project.status} />
+        </div>
+        {project.address && <p className="text-ink/60 text-sm mb-4">{project.address}</p>}
+      </button>
+      <div className="flex items-center gap-4 pt-3 border-t border-line/10 text-xs font-mono text-line uppercase tracking-wide">
+        <Link to="/drawings" onClick={onSelect} className="hover:text-amber-dark transition-colors">Drawings →</Link>
+        <Link to="/meetings" onClick={onSelect} className="hover:text-amber-dark transition-colors">Meetings →</Link>
+        <Link to="/team" onClick={onSelect} className="hover:text-amber-dark transition-colors">Team →</Link>
+        <button onClick={() => setEditing(true)} className="ml-auto hover:text-amber-dark transition-colors">Edit</button>
+      </div>
+    </Card>
+  );
+}
+
 export default function ArchitectDashboard() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -128,30 +207,13 @@ export default function ArchitectDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {projects.map((project, i) => (
-          <Card key={project.id} delay={i * 60} className="relative overflow-hidden pt-6">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-amber-gradient" />
-            <button
-              onClick={() => setActiveProject(project.id, project.name)}
-              className="w-full text-left"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <h3 className="font-display font-semibold text-ink text-base">{project.name}</h3>
-                <StatusBadge status={project.status} />
-              </div>
-              {project.address && <p className="text-ink/60 text-sm mb-4">{project.address}</p>}
-            </button>
-            <div className="flex gap-4 pt-3 border-t border-line/10 text-xs font-mono text-line uppercase tracking-wide">
-              <Link to="/drawings" onClick={() => setActiveProject(project.id, project.name)} className="hover:text-amber-dark transition-colors">
-                Drawings →
-              </Link>
-              <Link to="/meetings" onClick={() => setActiveProject(project.id, project.name)} className="hover:text-amber-dark transition-colors">
-                Meetings →
-              </Link>
-              <Link to="/team" onClick={() => setActiveProject(project.id, project.name)} className="hover:text-amber-dark transition-colors">
-                Team →
-              </Link>
-            </div>
-          </Card>
+          <ProjectCard
+            key={project.id}
+            project={project}
+            delay={i * 60}
+            onChanged={load}
+            onSelect={() => setActiveProject(project.id, project.name)}
+          />
         ))}
       </div>
     </div>
