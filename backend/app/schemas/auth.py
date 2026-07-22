@@ -28,3 +28,9 @@ class ProjectCreate(BaseModel):
     name: str
     address: str | None = None
     status: str = "planning"
+
+
+class ProjectUpdate(BaseModel):
+    name: str | None = None
+    address: str | None = None
+    status: str | None = None
