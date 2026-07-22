@@ -19,23 +19,27 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { label: "Team", path: "/team", code: "TM" },
     { label: "Vendors", path: "/vendors", code: "VND" },
     { label: "Contacts", path: "/contacts", code: "CON" },
+    { label: "My Profile", path: "/profile", code: "ME" },
   ],
   vendor: [
     { label: "My Tasks", path: "/", code: "TSK" },
     { label: "Drawings", path: "/drawings", code: "DWG" },
     { label: "Progress", path: "/progress", code: "PRG" },
     { label: "Contacts", path: "/contacts", code: "CON" },
+    { label: "My Profile", path: "/profile", code: "ME" },
   ],
   onboarding: [
     { label: "Progress", path: "/", code: "PRG" },
     { label: "Drawings", path: "/drawings", code: "DWG" },
     { label: "Contacts", path: "/contacts", code: "CON" },
+    { label: "My Profile", path: "/profile", code: "ME" },
   ],
   client: [
     { label: "Project Status", path: "/", code: "STA" },
     { label: "Drawings", path: "/drawings", code: "DWG" },
     { label: "Progress", path: "/progress", code: "PRG" },
     { label: "Contacts", path: "/contacts", code: "CON" },
+    { label: "My Profile", path: "/profile", code: "ME" },
   ],
 };
 
