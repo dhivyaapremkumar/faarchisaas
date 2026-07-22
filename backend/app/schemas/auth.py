@@ -22,3 +22,9 @@ class ProjectOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ProjectCreate(BaseModel):
+    name: str
+    address: str | None = None
+    status: str = "planning"
