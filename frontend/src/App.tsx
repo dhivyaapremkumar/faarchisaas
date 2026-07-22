@@ -9,6 +9,9 @@ import ProjectDrawings from "./pages/architect/ProjectDrawings";
 import ProjectFiles from "./pages/architect/ProjectFiles";
 import ProjectMeetings from "./pages/architect/ProjectMeetings";
 import ProjectTeam from "./pages/architect/ProjectTeam";
+import VendorDirectory from "./pages/architect/VendorDirectory";
+import ProjectProgress from "./pages/ProjectProgress";
+import ProjectContacts from "./pages/ProjectContacts";
 import VendorDashboard from "./pages/vendor/Dashboard";
 import ClientDashboard from "./pages/client/Dashboard";
 
@@ -23,6 +26,7 @@ function RoleHome() {
   const architectRoles: Role[] = ["owner", "architect_admin", "architect_staff"];
   if (role && architectRoles.includes(role)) return <ArchitectDashboard />;
   if (role === "vendor") return <VendorDashboard />;
+  if (role === "onboarding") return <ProjectProgress />;
   return <ClientDashboard />;
 }
 
@@ -70,6 +74,30 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <ProjectTeam />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/vendors"
+              element={
+                <ProtectedRoute>
+                  <VendorDirectory />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/progress"
+              element={
+                <ProtectedRoute>
+                  <ProjectProgress />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/contacts"
+              element={
+                <ProtectedRoute>
+                  <ProjectContacts />
                 </ProtectedRoute>
               }
             />
