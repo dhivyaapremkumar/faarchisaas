@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import auth, projects, drawings, meetings, files, progress, vendors, tasks
+from app.api import auth, projects, drawings, meetings, files, progress, vendors, tasks, me
 
 app = FastAPI(title="ArchiSaaS API", version="0.1.0")
 
@@ -20,6 +20,7 @@ app.include_router(files.router, prefix="/api")
 app.include_router(progress.router, prefix="/api")
 app.include_router(vendors.router, prefix="/api")
 app.include_router(tasks.router, prefix="/api")
+app.include_router(me.router, prefix="/api")
 
 
 @app.get("/health")
